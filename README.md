@@ -56,7 +56,7 @@ project-root/
 ## Setup and Installation  
 1. **Clone the repository:**  
    ```bash  
-   git clone https://github.com/your-username/neural-network-training-app.git  
+   git clone https://github.com/SOUHAIB-IA/CNN-Web-APP.git
    cd neural-network-training-app  
    ```  
 
