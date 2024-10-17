@@ -2,12 +2,12 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 import os
 import pandas as pd
 from werkzeug.utils import secure_filename
-from model.train import train_model
-from model.data_processing import process_data
+#from model.train import train_model
+#from model.data_processing import process_data
 
 # Initialize Blueprint for routing
 routes = Blueprint('routes', __name__)
-
+'''
 # Folder to store uploaded files
 UPLOAD_FOLDER = 'uploads/'
 ALLOWED_EXTENSIONS = {'csv'}
@@ -15,12 +15,12 @@ ALLOWED_EXTENSIONS = {'csv'}
 # Utility function to check allowed file types
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
+'''
 # Route to homepage
 @routes.route('/')
 def index():
     return render_template('index.html')
-
+'''
 # Route to upload dataset
 @routes.route('/upload', methods=['POST'])
 def upload_file():
@@ -94,3 +94,4 @@ def training_progress():
         "loss": 0.35
     }
     return jsonify(progress)
+'''
