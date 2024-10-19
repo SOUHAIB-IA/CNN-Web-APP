@@ -67,9 +67,7 @@ def upload_file():
 
     flash('Invalid file type. Only CSV, XLS, or XLSX files are allowed.')
     return redirect(request.url)
-
-
-    
+ 
 @routes.route('/get_config', methods=['POST'])
 def get_config():
     # Get CNN configuration from the form
@@ -79,10 +77,6 @@ def get_config():
     batch_size = request.form.get('batch_size', type=int)
     epochs = request.form.get('epochs', type=int)
     dropout_rate = request.form.get('dropout_rate', type=float)
-
-    # Get the target column selected by the user
-    target_column = request.form.get('target_column')
-
     # Collect layers configuration
     layers_config = []
     for i in range(1, num_layers + 1):
