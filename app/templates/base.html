@@ -1,30 +1,94 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}My Flask App{% endblock %}</title>
-    <link rel="stylesheet" href="https://cdn.tailwindcss.com">
-    
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neural Network Trainer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 text-gray-800">
+<body class="bg-gray-100 font-sans leading-normal tracking-normal">
 
-    <!-- Navigation Bar -->
-    <nav class="bg-blue-600 text-white p-4">
-        <div class="container mx-auto">
-            <a href="/" class="text-2xl font-semibold">FlaskApp</a>
+  <!-- Navbar -->
+  <nav class="bg-blue-600 p-4 shadow-lg">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-white text-xl font-bold">Neural Network Trainer</h1>
+      <button class="bg-blue-800 text-white px-4 py-2 rounded hover:bg-blue-700">
+        Dashboard
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="container mx-auto mt-10">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+      <!-- Data Upload Section -->
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <h2 class="text-2xl font-semibold mb-4">Upload Data</h2>
+        <input type="file" id="dataFile" class="block w-full text-gray-600 mb-4" />
+        <button class="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+          Upload
+        </button>
+      </div>
+
+      <!-- Model Configuration Section -->
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <h2 class="text-2xl font-semibold mb-4">Configure Model</h2>
+        <div class="mb-4">
+          <label class="block text-gray-700">Number of Layers:</label>
+          <input type="number" class="w-full border rounded p-2" placeholder="Enter number of layers" />
         </div>
-    </nav>
+        <div class="mb-4">
+          <label class="block text-gray-700">Learning Rate:</label>
+          <input type="number" step="0.01" class="w-full border rounded p-2" placeholder="Enter learning rate" />
+        </div>
+        <button class="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+          Save Configuration
+        </button>
+      </div>
+    </div>
 
-    <!-- Main Content Block -->
-    <main class="container mx-auto mt-10">
-        {% block content %}{% endblock %}
-    </main>
+    <!-- Training Status -->
+    <div class="mt-10 bg-white p-6 rounded-lg shadow-md">
+      <h2 class="text-2xl font-semibold mb-4">Training Status</h2>
+      <p class="text-gray-600">Training in progress...</p>
+      <div class="w-full bg-gray-200 rounded-full h-2.5 mt-4">
+        <div class="bg-blue-500 h-2.5 rounded-full" style="width: 45%;"></div>
+      </div>
+    </div>
 
-    <!-- Footer -->
-    <footer class="bg-gray-800 text-white text-center p-4 mt-10">
-        <p>&copy; 2024 My Flask App. All Rights Reserved.</p>
-    </footer>
+    <!-- Graphs Section -->
+    <div class="mt-10 bg-white p-6 rounded-lg shadow-md">
+      <h2 class="text-2xl font-semibold mb-4">Training Results</h2>
+      <canvas id="lossChart" class="w-full h-64"></canvas>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    // Sample chart for loss visualization
+    const ctx = document.getElementById('lossChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['Epoch 1', 'Epoch 2', 'Epoch 3', 'Epoch 4'],
+        datasets: [{
+          label: 'Loss',
+          data: [0.9, 0.7, 0.5, 0.3],
+          borderColor: 'rgba(75, 192, 192, 1)',
+          borderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    });
+  </script>
 
 </body>
 </html>
