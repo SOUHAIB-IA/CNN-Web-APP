@@ -5,9 +5,8 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 import numpy as np
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.optimizers import Adam
-
+from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras.optimizers import Adam, SGD, RMSprop, Adagrad
 def process_data(filepath):
     # Exemple: traiter un fichier CSV avec pandas
     try:
@@ -32,20 +31,34 @@ def train_linear_model(data,target_column,train_size):
     # Prédictions et évaluation
     return model,y_pred
 
-def train_model(config, x_train, y_train):
-    # Build the model
+def train_model(config, X, y):
+    # Create a Sequential model
     model = Sequential()
-    
-    # Add layers to the model based on the configuration
-    for _ in range(config['nm_layers']):
-        model.add(Dense(config['neurons'], activation=config['activation']))
-    
-    model.add(Dense(1, activation='sigmoid'))  # Assuming binary classification
 
-    # Compile the model
+    # Add layers based on the configuration
+    for layer_config in config['layers']:
+        model.add(Dense(layer_config['neurons'], activation=layer_config['activation']))
 
+   
+
+    # Add dropout layer if configured
+    if config['dropout_rate'] > 0:
+        model.add(Dropout(config['dropout_rate']))
+
+    # Compile the model with the chosen optimizer
+    optimizer = None
+    if config['optimizer'] == 'adam':
+        optimizer = Adam(learning_rate=config['learning_rate'])
+    elif config['optimizer'] == 'sgd':
+        optimizer = SGD(learning_rate=config['learning_rate'])
+    elif config['optimizer'] == 'rmsprop':
+        optimizer = RMSprop(learning_rate=config['learning_rate'])
+    elif config['optimizer'] == 'adagrad':
+        optimizer = Adagrad(learning_rate=config['learning_rate'])
+
+    model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
 
     # Train the model
-    history = model.fit(x_train, y_train, epochs=config['epochs'], batch_size=32, validation_split=0.2)
+    history = model.fit(X, y, epochs=config['epochs'], batch_size=config['batch_size'], validation_split=0.2)
 
-    return history
+    return history,model
