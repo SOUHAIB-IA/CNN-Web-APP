@@ -3,8 +3,49 @@
 {% block title %}Home - My Flask App{% endblock %}
 
 {% block content %}
-<div class="text-center">
-    <h1 class="text-4xl  font-bold">Welcome to My Flask App!</h1>
-    <p class="mt-4 text-lg text-gray-600">This is the homepage.</p>
-</div>
+<!-- Main Content -->
+<div class="container mx-auto mt-10">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+      <!-- Data Upload Section -->
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <h2 class="text-2xl font-semibold mb-4">Upload Data</h2>
+        <input type="file" id="dataFile" class="block w-full text-gray-600 mb-4" />
+        <button class="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+          Upload
+        </button>
+      </div>
+
+      <!-- Model Configuration Section -->
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <h2 class="text-2xl font-semibold mb-4">Configure Model</h2>
+        <div class="mb-4">
+          <label class="block text-gray-700">Number of Layers:</label>
+          <input type="number" class="w-full border rounded p-2" placeholder="Enter number of layers" />
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700">Learning Rate:</label>
+          <input type="number" step="0.01" class="w-full border rounded p-2" placeholder="Enter learning rate" />
+        </div>
+        <button class="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+          Save Configuration
+        </button>
+      </div>
+    </div>
+
+    <!-- Training Status -->
+    <div class="mt-10 bg-white p-6 rounded-lg shadow-md">
+      <h2 class="text-2xl font-semibold mb-4">Training Status</h2>
+      <p class="text-gray-600">Training in progress...</p>
+      <div class="w-full bg-gray-200 rounded-full h-2.5 mt-4">
+        <div class="bg-blue-500 h-2.5 rounded-full" style="width: 45%;"></div>
+      </div>
+    </div>
+
+    <!-- Graphs Section -->
+    <div class="mt-10 bg-white p-6 rounded-lg shadow-md">
+      <h2 class="text-2xl font-semibold mb-4">Training Results</h2>
+      <canvas id="lossChart" class="w-full h-64"></canvas>
+    </div>
+  </div>
 {% endblock %}
