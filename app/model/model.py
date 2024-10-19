@@ -2,7 +2,7 @@ import pandas as pd
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 import numpy as np
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
@@ -46,19 +46,33 @@ def train_model(config, X, y):
         model.add(Dropout(config['dropout_rate']))
 
     # Compile the model with the chosen optimizer
-    optimizer = None
-    if config['optimizer'] == 'adam':
-        optimizer = Adam(learning_rate=config['learning_rate'])
-    elif config['optimizer'] == 'sgd':
-        optimizer = SGD(learning_rate=config['learning_rate'])
-    elif config['optimizer'] == 'rmsprop':
-        optimizer = RMSprop(learning_rate=config['learning_rate'])
-    elif config['optimizer'] == 'adagrad':
-        optimizer = Adagrad(learning_rate=config['learning_rate'])
-
-    model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
+    optimizer_mapping = {
+        'adam': Adam(learning_rate=config['learning_rate']),
+        'sgd': SGD(learning_rate=config['learning_rate']),
+        'rmsprop': RMSprop(learning_rate=config['learning_rate']),
+        'adagrad': Adagrad(learning_rate=config['learning_rate']),
+    }
+    model.compile(optimizer=optimizer_mapping.get(config['optimizer']), loss='binary_crossentropy', metrics=['accuracy'])
 
     # Train the model
     history = model.fit(X, y, epochs=config['epochs'], batch_size=config['batch_size'], validation_split=0.2)
 
     return history,model
+
+def predict(model,x_pred):
+    x_pred = x_pred.reshape((-1, model.input_shape[1]))
+    y_pred = model.predict(x_pred)
+    return y_pred
+
+def evaluate_model(model,x,y_true):
+    # Calculate various metrics
+    y_pred = predict(model,x)
+    accuracy = accuracy_score(y_true, y_pred)
+    report = classification_report(y_true, y_pred)
+    cm = confusion_matrix(y_true, y_pred)
+
+    return {
+        'accuracy': accuracy,
+        'classification_report': report,
+        'confusion_matrix': cm
+    }
