@@ -3,49 +3,162 @@
 {% block title %}Home - My Flask App{% endblock %}
 
 {% block content %}
-<!-- Main Content -->
 <div class="container mx-auto mt-10">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-
-      <!-- Data Upload Section -->
-      <div class="bg-white p-6 rounded-lg shadow-md">
-        <h2 class="text-2xl font-semibold mb-4">Upload Data</h2>
-        <input type="file" id="dataFile" class="block w-full text-gray-600 mb-4" />
-        <button class="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
-          Upload
-        </button>
-      </div>
-
-      <!-- Model Configuration Section -->
-      <div class="bg-white p-6 rounded-lg shadow-md">
-        <h2 class="text-2xl font-semibold mb-4">Configure Model</h2>
-        <div class="mb-4">
-          <label class="block text-gray-700">Number of Layers:</label>
-          <input type="number" class="w-full border rounded p-2" placeholder="Enter number of layers" />
+    <!-- Data Upload Section -->
+    <form action="/upload" method="POST" enctype="multipart/form-data">
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-semibold mb-4">Upload Data</h2>
+            <input type="file" name="file" id="dataFile" class="block w-full text-gray-600 mb-4" />
+            <button type="submit" class="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                Upload
+            </button>
         </div>
-        <div class="mb-4">
-          <label class="block text-gray-700">Learning Rate:</label>
-          <input type="number" step="0.01" class="w-full border rounded p-2" placeholder="Enter learning rate" />
+    </form>
+
+    <!-- Data Preview Section -->
+    {% if data_preview is not none and not data_preview.empty %}
+    <div class="mt-8">
+        <h2 class="text-2xl font-semibold mb-4">Data Preview</h2>
+        <div class="bg-white p-6 rounded-lg shadow-md overflow-x-auto">
+            <table class="w-full bg-white border-collapse">
+                <thead>
+                    <tr>
+                        {% for column in data_preview.columns %}
+                        <th class="px-4 py-2 border border-gray-400 text-center bg-gray-100 font-bold">
+                            {{ column }}
+                        </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in data_preview.itertuples() %}
+                    <tr class="even:bg-gray-50 odd:bg-white">
+                        {% for value in row[1:] %}
+                        <td class="px-4 py-2 border border-gray-400 text-left">{{ value }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-        <button class="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-          Save Configuration
-        </button>
-      </div>
     </div>
+    {% endif %}
+
+  <!-- Model Configuration Section -->
+<div class="mt-8 bg-white p-6 rounded-lg shadow-md">
+    <h2 class="text-2xl font-semibold mb-4">Configure CNN Model</h2>
+
+    <!-- Number of Layers -->
+    <div class="mb-4">
+        <label class="block text-gray-700">Number of Layers:</label>
+        <input type="number" id="numLayers" min="1" class="w-full border rounded p-2" placeholder="Enter number of layers" onchange="generateLayerConfig()" />
+    </div>
+
+    <!-- Layer Configuration Section (dynamically generated) -->
+    <div id="layerConfigSection"></div>
+
+    <!-- Optimizer -->
+    <div class="mt-4">
+        <label class="block text-gray-700">Optimizer:</label>
+        <select class="w-full border rounded p-2">
+            <option value="adam">Adam</option>
+            <option value="sgd">SGD</option>
+            <option value="rmsprop">RMSprop</option>
+            <option value="adagrad">Adagrad</option>
+        </select>
+    </div>
+
+    <!-- Learning Rate -->
+    <div class="mt-4">
+        <label class="block text-gray-700">Learning Rate:</label>
+        <input type="number" step="0.0001" min="0" class="w-full border rounded p-2" placeholder="Enter learning rate" />
+    </div>
+
+    <!-- Batch Size -->
+    <div class="mt-4">
+        <label class="block text-gray-700">Batch Size:</label>
+        <input type="number" min="1" class="w-full border rounded p-2" placeholder="Enter batch size" />
+    </div>
+
+    <!-- Number of Epochs -->
+    <div class="mt-4">
+        <label class="block text-gray-700">Number of Epochs:</label>
+        <input type="number" min="1" class="w-full border rounded p-2" placeholder="Enter number of epochs" />
+    </div>
+
+    <!-- Dropout Rate -->
+    <div class="mt-4">
+        <label class="block text-gray-700">Dropout Rate:</label>
+        <input type="number" step="0.01" min="0" max="1" class="w-full border rounded p-2" placeholder="Enter dropout rate (0.0 - 1.0)" />
+    </div>
+
+    <!-- Button to Save Configuration -->
+    <button class="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mt-4">
+        Save Configuration
+    </button>
+</div>
+
+<!-- JavaScript to dynamically generate the layer configurations -->
+<script>
+function generateLayerConfig() {
+    const numLayers = document.getElementById('numLayers').value;
+    const layerConfigSection = document.getElementById('layerConfigSection');
+    layerConfigSection.innerHTML = ''; // Clear any previous layer configurations
+
+    for (let i = 1; i <= numLayers; i++) {
+        const layerDiv = document.createElement('div');
+        layerDiv.className = "border-t border-gray-200 mt-4 pt-4";
+
+        // Layer Heading
+        const layerHeading = document.createElement('h3');
+        layerHeading.className = "text-xl font-semibold mb-4";
+        layerHeading.innerText = `Layer ${i}`;
+        layerDiv.appendChild(layerHeading);
+
+       {/* // Number of Filters
+        const filterDiv = document.createElement('div');
+        filterDiv.className = 'mb-4';
+        filterDiv.innerHTML = `
+            <label class="block text-gray-700">Number of Filters (Layer ${i}):</label>
+            <input type="number" min="1" class="w-full border rounded p-2" placeholder="Enter number of filters for Layer ${i}" />
+        `;
+        layerDiv.appendChild(filterDiv);
+       */}
+       
+        // Activation Function
+        const activationDiv = document.createElement('div');
+        activationDiv.className = 'mb-4';
+        activationDiv.innerHTML = `
+            <label class="block text-gray-700">Activation Function (Layer ${i}):</label>
+            <select class="w-full border rounded p-2">
+                <option value="relu">ReLU</option>
+                <option value="sigmoid">Sigmoid</option>
+                <option value="tanh">Tanh</option>
+                <option value="softmax">Softmax</option>
+            </select>
+        `;
+        layerDiv.appendChild(activationDiv);
+
+        // Append the configuration for this layer to the section
+        layerConfigSection.appendChild(layerDiv);
+    }
+}
+</script>
+
 
     <!-- Training Status -->
     <div class="mt-10 bg-white p-6 rounded-lg shadow-md">
-      <h2 class="text-2xl font-semibold mb-4">Training Status</h2>
-      <p class="text-gray-600">Training in progress...</p>
-      <div class="w-full bg-gray-200 rounded-full h-2.5 mt-4">
-        <div class="bg-blue-500 h-2.5 rounded-full" style="width: 45%;"></div>
-      </div>
+        <h2 class="text-2xl font-semibold mb-4">Training Status</h2>
+        <p class="text-gray-600">Training in progress...</p>
+        <div class="w-full bg-gray-200 rounded-full h-2.5 mt-4">
+            <div class="bg-blue-500 h-2.5 rounded-full" style="width: 45%;"></div>
+        </div>
     </div>
 
     <!-- Graphs Section -->
     <div class="mt-10 bg-white p-6 rounded-lg shadow-md">
-      <h2 class="text-2xl font-semibold mb-4">Training Results</h2>
-      <canvas id="lossChart" class="w-full h-64"></canvas>
+        <h2 class="text-2xl font-semibold mb-4">Training Results</h2>
+        <canvas id="lossChart" class="w-full h-64"></canvas>
     </div>
-  </div>
+</div>
 {% endblock %}

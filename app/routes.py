@@ -1,97 +1,62 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash
 import os
 import pandas as pd
 from werkzeug.utils import secure_filename
-#from model.train import train_model
-#from model.data_processing import process_data
 
 # Initialize Blueprint for routing
 routes = Blueprint('routes', __name__)
-'''
+
 # Folder to store uploaded files
 UPLOAD_FOLDER = 'uploads/'
-ALLOWED_EXTENSIONS = {'csv'}
+ALLOWED_EXTENSIONS = {'txt', 'csv', 'xls', 'xlsx'}
+
+# Set the folder in the app config
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
 
 # Utility function to check allowed file types
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-'''
+
 # Route to homepage
 @routes.route('/')
 def index():
-    return render_template('index.html')
-'''
-# Route to upload dataset
+    # Assuming you have some logic to define data_preview
+    data_preview = None  # Or some logic that fetches a DataFrame or appropriate data
+
+    # Pass data_preview to the template
+    return render_template('index.html', data_preview=data_preview)
+
+# Route to handle file uploads
 @routes.route('/upload', methods=['POST'])
 def upload_file():
+    # Check if the request contains a file part
     if 'file' not in request.files:
         flash('No file part')
         return redirect(request.url)
 
     file = request.files['file']
 
+    # If no file is selected
     if file.filename == '':
-        flash('No selected file')
+        flash('No file selected')
         return redirect(request.url)
 
+    # Check if the file is allowed and save it
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
-        filepath = os.path.join(UPLOAD_FOLDER, filename)
-        file.save(filepath)
+        file_path = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(file_path)
+        flash(f'File {filename} uploaded successfully')
 
-        # Process the uploaded data (e.g., CSV file)
-        data = process_data(filepath)
-        
-        flash(f'Data uploaded and processed successfully: {filename}')
-        return redirect(url_for('routes.configure_model'))
+        # Process the uploaded file with pandas (example with CSV)
+        data = pd.read_csv(file_path)
+
+        # Send the data to the template for previewing
+        data_preview = data.head(10)  # Show the first 10 rows for example
+
+        return render_template('index.html', data_preview=data_preview)
 
     else:
-        flash('Invalid file format. Please upload a CSV file.')
+        flash('Invalid file type. Only CSV files are allowed.')
         return redirect(request.url)
-
-# Route to configure the neural network
-@routes.route('/configure', methods=['GET', 'POST'])
-def configure_model():
-    if request.method == 'POST':
-        # Extract the configuration from the form
-        layers = int(request.form.get('layers'))
-        neurons = int(request.form.get('neurons'))
-        activation = request.form.get('activation')
-        epochs = int(request.form.get('epochs'))
-        learning_rate = float(request.form.get('learning_rate'))
-
-        # Store the configuration or pass it to the training function
-        config = {
-            'layers': layers,
-            'neurons': neurons,
-            'activation': activation,
-            'epochs': epochs,
-            'learning_rate': learning_rate
-        }
-
-        # Start training the model
-        results = train_model(config)
-
-        return jsonify(results)
-
-    return render_template('configure_model.html')
-
-# Route to display training results
-@routes.route('/results')
-def display_results():
-    # Here, you'd load results from the training process
-    # E.g., loss curve, accuracy, etc.
-    loss_curve_path = os.path.join('results', 'loss_curve.png')
-    return render_template('results.html', loss_curve_path=loss_curve_path)
-
-# API route to get real-time training progress (optional)
-@routes.route('/progress', methods=['GET'])
-def training_progress():
-    # Example: Return JSON of training progress
-    progress = {
-        "epoch": 5,
-        "accuracy": 0.85,
-        "loss": 0.35
-    }
-    return jsonify(progress)
-'''
