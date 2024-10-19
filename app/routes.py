@@ -1,5 +1,6 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 import os
+from model.model import process_data
 import pandas as pd
 from werkzeug.utils import secure_filename
 
@@ -60,3 +61,16 @@ def upload_file():
     else:
         flash('Invalid file type. Only CSV files are allowed.')
         return redirect(request.url)
+@routes.route('/get_config',methods=['post'])
+def get_config():
+    num_layers = request.form.get('numLayers', type=int)
+    layers_config = []
+
+    for i in range(1, num_layers + 1):
+        activation = request.form.get(f'activation_layer_{i}')
+        neurons_nbr = request.form.get(f'neurons_layer_{i}')
+        layers_config.append({'activation': activation, 'neurons_nbr':neurons_nbr})
+        
+    
+
+    return jsonify(layers_config)
