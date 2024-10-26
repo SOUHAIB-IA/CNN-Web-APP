@@ -110,6 +110,7 @@ def get_config():
     history_df = pd.DataFrame(history.history)
     history_df.to_csv("training_history", index=False)
     model.save('model.h5')
+    
 
     
     flash('Model configured and trained successfully!')

@@ -42,6 +42,7 @@ def train_model(config, filepath):
     if config['dropout_rate'] > 0:
         model.add(Dropout(config['dropout_rate']))
 
+
     optimizer_mapping = {
         'adam': Adam(learning_rate=config['learning_rate']),
         'sgd': SGD(learning_rate=config['learning_rate']),
