@@ -49,17 +49,45 @@
         <div class="mt-8 bg-white p-6 rounded-lg shadow-md">
             <h2 class="text-2xl font-semibold mb-4">Configure CNN Model</h2>
 
-            <!-- Number of Layers -->
+            <!-- Target Column Selection -->
+            <div class="mb-4">
+                <label class="block text-gray-700">Target Column:</label>
+                <select name="target_column" class="w-full border rounded p-2" required>
+                    <option value="" disabled selected>Select target column</option>
+                    {% for column in data_preview.columns %}
+                    <option value="{{ column }}">{{ column }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Feature Selection -->
+            <div class="mb-4">
+                <label class="block text-gray-700">Select Features:</label>
+                {% for column in data_preview.columns %}
+                <div class="mb-2">
+                    <input type="checkbox" name="features" value="{{ column }}" id="feature_{{ loop.index }}">
+                    <label for="feature_{{ loop.index }}" class="text-gray-600">{{ column }}</label>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Train-Test Split Percentage -->
+            <div class="mb-4">
+                <label class="block text-gray-700">Train-Test Split Percentage:</label>
+                <input type="number" name="train_test_split" min="1" max="100" class="w-full border rounded p-2"
+                    placeholder="Enter percentage for training (1-100)" required />
+            </div>
+
+            <!-- Other Configuration Fields (as previously defined) -->
+            <!-- Number of Layers, Optimizer, Learning Rate, etc. -->
             <div class="mb-4">
                 <label class="block text-gray-700">Number of Layers:</label>
                 <input type="number" name="numLayers" id="numLayers" min="1" class="w-full border rounded p-2"
                     placeholder="Enter number of layers" onchange="generateLayerConfig()" required />
             </div>
 
-            <!-- Layer Configuration Section (dynamically generated) -->
             <div id="layerConfigSection"></div>
 
-            <!-- Optimizer -->
             <div class="mt-4">
                 <label class="block text-gray-700">Optimizer:</label>
                 <select name="optimizer" class="w-full border rounded p-2">
@@ -70,28 +98,24 @@
                 </select>
             </div>
 
-            <!-- Learning Rate -->
             <div class="mt-4">
                 <label class="block text-gray-700">Learning Rate:</label>
                 <input type="number" name="learning_rate" step="0.0001" min="0" class="w-full border rounded p-2"
                     placeholder="Enter learning rate" required />
             </div>
 
-            <!-- Batch Size -->
             <div class="mt-4">
                 <label class="block text-gray-700">Batch Size:</label>
                 <input type="number" name="batch_size" min="1" class="w-full border rounded p-2"
                     placeholder="Enter batch size" required />
             </div>
 
-            <!-- Number of Epochs -->
             <div class="mt-4">
                 <label class="block text-gray-700">Number of Epochs:</label>
                 <input type="number" name="epochs" min="1" class="w-full border rounded p-2"
                     placeholder="Enter number of epochs" required />
             </div>
 
-            <!-- Dropout Rate -->
             <div class="mt-4">
                 <label class="block text-gray-700">Dropout Rate:</label>
                 <input type="number" name="dropout_rate" step="0.01" min="0" max="1" class="w-full border rounded p-2"
@@ -100,7 +124,7 @@
 
             <!-- Button to Save Configuration -->
             <button type="submit" class="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mt-4">
-                Save Configuration
+                Set Configuration and Train
             </button>
         </div>
     </form>
