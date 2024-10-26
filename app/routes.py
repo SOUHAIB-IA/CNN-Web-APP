@@ -77,6 +77,10 @@ def get_config():
     batch_size = request.form.get('batch_size', type=int)
     epochs = request.form.get('epochs', type=int)
     dropout_rate = request.form.get('dropout_rate', type=float)
+    train_size = request.form.get('train_test_split',type=int)
+    features = request.form.get('features')
+    target_feature = request.form.get('target_column')
+
     # Collect layers configuration
     layers_config = []
     for i in range(1, num_layers + 1):
@@ -96,10 +100,17 @@ def get_config():
         'batch_size': batch_size,
         'epochs': epochs,
         'dropout_rate': dropout_rate,
-        'target_column': target_column,
+        'target_column': target_feature,
+        'columns':features,
+        'train_size':train_size
     }
 
     session['model_config'] = model_config 
+    history,model,stats = train_model(model_config,session.get('file_path'))
+    history_df = pd.DataFrame(history.history)
+    history_df.to_csv("training_history", index=False)
+    model.save('model.h5')
 
-    flash('Model configured successfully!')
+    
+    flash('Model configured and trained successfully!')
     return redirect(url_for('routes.index'))
