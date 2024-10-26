@@ -1,6 +1,6 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify,session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
 import os
-from model.model import process_data, train_model
+from model.model import process_data, train_model, prepare_data, evaluate_model
 import pandas as pd
 from werkzeug.utils import secure_filename
 
@@ -22,10 +22,7 @@ def allowed_file(filename):
 # Route to homepage
 @routes.route('/')
 def index():
-    # Assuming you have some logic to define data_preview
-    data_preview = None  # Or some logic that fetches a DataFrame or appropriate data
-
-    # Pass data_preview to the template
+    data_preview = None  # Initialize data preview to None
     return render_template('index.html', data_preview=data_preview)
 
 # Route to handle file uploads
@@ -53,6 +50,7 @@ def upload_file():
         filename = secure_filename(file.filename)
         file_path = os.path.join(UPLOAD_FOLDER, filename)
         file.save(file_path)
+
         # Process the uploaded file
         try:
             data = process_data(file_path)
@@ -67,7 +65,8 @@ def upload_file():
 
     flash('Invalid file type. Only CSV, XLS, or XLSX files are allowed.')
     return redirect(request.url)
- 
+
+# Route to get CNN model configuration from the form
 @routes.route('/get_config', methods=['POST'])
 def get_config():
     # Get CNN configuration from the form
@@ -77,9 +76,15 @@ def get_config():
     batch_size = request.form.get('batch_size', type=int)
     epochs = request.form.get('epochs', type=int)
     dropout_rate = request.form.get('dropout_rate', type=float)
-    train_size = request.form.get('train_test_split',type=int)
-    features = request.form.get('features')
-    target_feature = request.form.get('target_column')
+
+    # Get the target column
+    target_column = request.form.get('target_column')
+
+    # Get the selected features (checkboxes)
+    selected_features = request.form.getlist('features')
+
+    # Get the train-test split percentage
+    train_test_split = request.form.get('train_test_split', type=int)
 
     # Collect layers configuration
     layers_config = []
@@ -100,17 +105,49 @@ def get_config():
         'batch_size': batch_size,
         'epochs': epochs,
         'dropout_rate': dropout_rate,
-        'target_column': target_feature,
-        'columns':features,
-        'train_size':train_size
+        'target_column': target_column,
+        'columns': selected_features,
+        'train_test_split': train_test_split,
     }
 
     session['model_config'] = model_config 
-    history,model,stats = train_model(model_config,session.get('file_path'))
-    history_df = pd.DataFrame(history.history)
-    history_df.to_csv("training_history", index=False)
-    model.save('model.h5')
 
-    
-    flash('Model configured and trained successfully!')
+    flash('Model configured successfully!')
     return redirect(url_for('routes.index'))
+
+# Route to train the CNN model
+@routes.route('/train_model', methods=['POST'])
+def train_model_route():
+    # Ensure the file is uploaded and configuration is available
+    if 'file_path' not in session or 'model_config' not in session:
+        flash('File not uploaded or model configuration missing!')
+        return redirect(url_for('routes.index'))
+
+    # Load the configuration and file path from the session
+    model_config = session['model_config']
+    file_path = session['file_path']
+
+    try:
+        # Process the uploaded file and prepare data
+        data = process_data(file_path)
+        if data is None:
+            flash('Error processing the file')
+            return redirect(url_for('routes.index'))
+        
+        # Prepare the data for training
+        X_train, X_test, y_train, y_test = prepare_data(data, model_config)
+        
+        # Train the model using the provided configuration
+        history, model = train_model(model_config, X_train, y_train)
+
+        # Evaluate the model
+        accuracy = evaluate_model(model, X_test, y_test)
+
+        flash(f'Model trained successfully with accuracy: {accuracy:.2f}')
+        
+        # Render the results to the UI
+        return render_template('training_results.html', accuracy=accuracy, history=history.history)
+
+    except Exception as e:
+        flash(f'Error training model: {str(e)}')
+        return redirect(url_for('routes.index'))

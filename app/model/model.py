@@ -1,72 +1,99 @@
 import pandas as pd
-import pandas as pd
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-import numpy as np
+from sklearn.preprocessing import StandardScaler, LabelEncoder
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
 from tensorflow.keras.optimizers import Adam, SGD, RMSprop, Adagrad
+from sklearn.metrics import accuracy_score
+
 def process_data(filepath):
-    # Exemple: traiter un fichier CSV avec pandas
+    """
+    Function to load and process data from CSV.
+    Assumes the first row of the CSV contains column headers.
+    """
     try:
         data = pd.read_csv(filepath)
-        # Fais ici le traitement souhaité sur 'data'
+        # Add custom processing logic if necessary
         return data
     except Exception as e:
         print(f"Error processing file: {e}")
         return None
 
-def train_model(config, filepath):
-    data = process_data(filepath)
-    if data is None:
-        return None, None, None  # Handle the case where data processing fails
-
-    # Ensure columns are numeric
-    print(data)
-    print(config)
-    data[config['columns']] = data[config['columns']].apply(pd.to_numeric, errors='coerce')
-    data.dropna(inplace=True)
-
-    x = data[config['columns']]
+def prepare_data(data, config):
+    """
+    Function to prepare the dataset for training based on the selected features and target.
+    """
+    # Extract the selected features and target
+    X = data[config['columns']]
     y = data[config['target_column']]
-    if len(x) == 0 or len(y) == 0:
-        raise ValueError("The dataset is empty. Please check the data source.")
 
-    x_train, x_test, y_train, y_test = train_test_split(x, y, train_size=config['train_size'] / 100)
+    # Encode categorical target if necessary
+    if y.dtype == 'object':
+        y = LabelEncoder().fit_transform(y)
 
+    # Perform any additional preprocessing (e.g., scaling for numerical features)
+    X = pd.get_dummies(X, drop_first=True)  # One-hot encode categorical features
+
+    # Split data into train and test sets
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=config['train_test_split'] / 100, random_state=42)
+
+    # Scale features
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)
+
+    return X_train, X_test, y_train, y_test
+
+def train_model(config, X_train, y_train):
+    """
+    Function to create, compile, and train a neural network model.
+    :param config: Dictionary containing model configuration
+    :param X_train: Training features
+    :param y_train: Training target
+    :return: history, trained model
+    """
+    # Create a Sequential model
     model = Sequential()
     for layer_config in config['layers']:
-        model.add(Dense(layer_config['neurons'], activation=layer_config['activation']))
+        model.add(Dense(layer_config['neurons'], activation=layer_config['activation'], input_shape=(X_train.shape[1],)))
 
+    # Add dropout layer if configured
     if config['dropout_rate'] > 0:
         model.add(Dropout(config['dropout_rate']))
 
-    optimizer_mapping = {
-        'adam': Adam(learning_rate=config['learning_rate']),
-        'sgd': SGD(learning_rate=config['learning_rate']),
-        'rmsprop': RMSprop(learning_rate=config['learning_rate']),
-        'adagrad': Adagrad(learning_rate=config['learning_rate']),
-    }
-    model.compile(optimizer=optimizer_mapping.get(config['optimizer']), loss='binary_crossentropy', metrics=['accuracy'])
+    # Add final output layer (binary classification assumed)
+    model.add(Dense(1, activation='sigmoid'))
 
-    history = model.fit(x_train, y_train, epochs=config['epochs'], batch_size=config['batch_size'], validation_split=0.2)
+    # Choose the optimizer
+    optimizer = None
+    if config['optimizer'] == 'adam':
+        optimizer = Adam(learning_rate=config['learning_rate'])
+    elif config['optimizer'] == 'sgd':
+        optimizer = SGD(learning_rate=config['learning_rate'])
+    elif config['optimizer'] == 'rmsprop':
+        optimizer = RMSprop(learning_rate=config['learning_rate'])
+    elif config['optimizer'] == 'adagrad':
+        optimizer = Adagrad(learning_rate=config['learning_rate'])
 
-    y_pred = predict(model, x_test.values)  # Make sure x_test is in the right shape
-    y_pred = (y_pred > 0.5).astype(int)  # Assuming binary classification
+    # Compile the model
+    model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
+
+    # Train the model
+    history = model.fit(X_train, y_train, epochs=config['epochs'], batch_size=config['batch_size'], validation_split=0.2)
+    print(history)
+    return history, model
+
+def evaluate_model(model, X_test, y_test):
+    """
+    Function to evaluate the trained model on test data.
+    :param model: Trained model
+    :param X_test: Test features
+    :param y_test: Test target
+    :return: Accuracy score
+    """
+    # Predict on test data
+    y_pred = (model.predict(X_test) > 0.5).astype("int32")
+    
+    # Calculate accuracy
     accuracy = accuracy_score(y_test, y_pred)
-    report = classification_report(y_test, y_pred)
-    cm = confusion_matrix(y_test, y_pred)
-
-    stats = {
-        'accuracy': accuracy,
-        'classification_report': report,
-        'confusion_matrix': cm
-    }
-    return history, model, stats
-
-
-def predict(model,x_pred):
-    x_pred = x_pred.reshape((-1, model.input_shape[1]))
-    y_pred = model.predict(x_pred)
-    return y_pred
+    return accuracy
