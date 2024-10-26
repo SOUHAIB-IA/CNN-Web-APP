@@ -8,7 +8,7 @@
     <form action="/upload" method="POST" enctype="multipart/form-data">
         <div class="bg-white p-6 rounded-lg shadow-md">
             <h2 class="text-2xl font-semibold mb-4">Upload Data</h2>
-            <input type="file" name="file" id="dataFile" class="block w-full text-gray-600 mb-4" />
+            <input type="file" name="file" id="dataFile" class="block w-full text-gray-600 mb-4" required />
             <button type="submit" class="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
                 Upload
             </button>
@@ -79,8 +79,7 @@
                     placeholder="Enter percentage for training (1-100)" required />
             </div>
 
-            <!-- Other Configuration Fields (as previously defined) -->
-            <!-- Number of Layers, Optimizer, Learning Rate, etc. -->
+            <!-- Number of Layers Configuration -->
             <div class="mb-4">
                 <label class="block text-gray-700">Number of Layers:</label>
                 <input type="number" name="numLayers" id="numLayers" min="1" class="w-full border rounded p-2"
@@ -89,6 +88,7 @@
 
             <div id="layerConfigSection"></div>
 
+            <!-- Optimizer Selection -->
             <div class="mt-4">
                 <label class="block text-gray-700">Optimizer:</label>
                 <select name="optimizer" class="w-full border rounded p-2">
@@ -99,24 +99,28 @@
                 </select>
             </div>
 
+            <!-- Learning Rate Input -->
             <div class="mt-4">
                 <label class="block text-gray-700">Learning Rate:</label>
                 <input type="number" name="learning_rate" step="0.0001" min="0" class="w-full border rounded p-2"
                     placeholder="Enter learning rate" required />
             </div>
 
+            <!-- Batch Size Input -->
             <div class="mt-4">
                 <label class="block text-gray-700">Batch Size:</label>
                 <input type="number" name="batch_size" min="1" class="w-full border rounded p-2"
                     placeholder="Enter batch size" required />
             </div>
 
+            <!-- Epochs Input -->
             <div class="mt-4">
                 <label class="block text-gray-700">Number of Epochs:</label>
                 <input type="number" name="epochs" min="1" class="w-full border rounded p-2"
                     placeholder="Enter number of epochs" required />
             </div>
 
+            <!-- Dropout Rate Input -->
             <div class="mt-4">
                 <label class="block text-gray-700">Dropout Rate:</label>
                 <input type="number" name="dropout_rate" step="0.01" min="0" max="1" class="w-full border rounded p-2"
@@ -129,15 +133,6 @@
             </button>
         </div>
     </form>
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            <ul class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4">
-            {% for message in messages %}
-                <li>{{ message }}</li>
-            {% endfor %}
-            </ul>
-        {% endif %}
-    {% endwith %}
 
     <!-- Training Status -->
     <div class="mt-10 bg-white p-6 rounded-lg shadow-md">
@@ -198,3 +193,4 @@
     }
 </script>
 {% endblock %}
+

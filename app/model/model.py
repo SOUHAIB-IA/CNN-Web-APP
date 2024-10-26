@@ -1,17 +1,19 @@
 import pandas as pd
-import pandas as pd
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-import numpy as np
+from sklearn.preprocessing import StandardScaler, LabelEncoder
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
 from tensorflow.keras.optimizers import Adam, SGD, RMSprop, Adagrad
+from sklearn.metrics import accuracy_score
+
 def process_data(filepath):
-    # Exemple: traiter un fichier CSV avec pandas
+    """
+    Function to load and process data from CSV.
+    Assumes the first row of the CSV contains column headers.
+    """
     try:
         data = pd.read_csv(filepath)
-        # Fais ici le traitement souhaité sur 'data'
+        # Add custom processing logic if necessary
         return data
     except Exception as e:
         print(f"Error processing file: {e}")

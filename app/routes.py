@@ -1,6 +1,6 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify,session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
 import os
-from model.model import process_data, train_model
+from model.model import process_data, train_model, prepare_data, evaluate_model
 import pandas as pd
 from werkzeug.utils import secure_filename
 
@@ -22,10 +22,7 @@ def allowed_file(filename):
 # Route to homepage
 @routes.route('/')
 def index():
-    # Assuming you have some logic to define data_preview
-    data_preview = None  # Or some logic that fetches a DataFrame or appropriate data
-
-    # Pass data_preview to the template
+    data_preview = None  # Initialize data preview to None
     return render_template('index.html', data_preview=data_preview)
 
 # Route to handle file uploads
@@ -53,6 +50,7 @@ def upload_file():
         filename = secure_filename(file.filename)
         file_path = os.path.join(UPLOAD_FOLDER, filename)
         file.save(file_path)
+
         # Process the uploaded file
         try:
             data = process_data(file_path)
@@ -67,7 +65,8 @@ def upload_file():
 
     flash('Invalid file type. Only CSV, XLS, or XLSX files are allowed.')
     return redirect(request.url)
- 
+
+# Route to get CNN model configuration from the form
 @routes.route('/get_config', methods=['POST'])
 def get_config():
     # Get CNN configuration from the form
