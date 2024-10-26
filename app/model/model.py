@@ -4,7 +4,7 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
 from tensorflow.keras.optimizers import Adam, SGD, RMSprop, Adagrad
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, classification_report,confusion_matrix
 
 def process_data(filepath):
     """
