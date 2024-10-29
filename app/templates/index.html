@@ -60,7 +60,7 @@
                 </select>
             </div>
 
-            
+
             <!-- Feature Selection -->
             <div class="mb-4">
                 <label class="block text-gray-700">Select Features:</label>
@@ -137,9 +137,9 @@
     <!-- Training Status -->
     <div class="mt-10 bg-white p-6 rounded-lg shadow-md">
         <h2 class="text-2xl font-semibold mb-4">Training Status</h2>
-        <p class="text-gray-600">Training in progress...</p>
+        <p id="statusMessage" class="text-gray-600">Waiting for training to start...</p>
         <div class="w-full bg-gray-200 rounded-full h-2.5 mt-4">
-            <div class="bg-blue-500 h-2.5 rounded-full" style="width: 45%;"></div>
+            <div id="progressBar" class="bg-blue-500 h-2.5 rounded-full" style="width: 0%;"></div>
         </div>
     </div>
 
@@ -191,6 +191,50 @@
             layerConfigSection.appendChild(layerDiv);
         }
     }
+
+    function startTraining() {
+        const statusMessage = document.getElementById('statusMessage');
+        const progressBar = document.getElementById('progressBar');
+
+        // Use EventSource to receive real-time progress updates
+        const eventSource = new EventSource('/train');
+
+        eventSource.onmessage = function (event) {
+            if (event.data === 'done') {
+                statusMessage.textContent = 'Training Completed!';
+                progressBar.style.width = '100%';
+                eventSource.close();  // Stop receiving updates
+            } else if (event.data.startsWith('error')) {
+                statusMessage.textContent = 'Error: ' + event.data.split(':')[1];
+                eventSource.close();  // Stop receiving updates
+            } else if (event.data === 'heartbeat') {
+                console.log('Heartbeat received');  // Keep-alive signal
+            } else {
+                const progress = parseInt(event.data);
+                progressBar.style.width = progress + '%';
+                statusMessage.textContent = `Training in progress... ${progress}%`;
+            }
+        };
+
+        eventSource.onerror = function () {
+            statusMessage.textContent = 'Connection lost. Attempting to reconnect...';
+            eventSource.close();  // Stop the current connection
+
+            // Attempt to reconnect after 5 seconds
+            setTimeout(() => {
+                startTraining();
+            }, 5000);
+        };
+    }
+
+    // Call the function when the form is submitted
+    const form = document.querySelector('form[action="/get_config"]');
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();  // Prevent default form submission
+        startTraining();  // Start training with progress updates
+        form.submit();  // Submit the form to configure and start training
+    });
+
+
 </script>
 {% endblock %}
-
