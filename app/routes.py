@@ -1,7 +1,9 @@
 import os
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session, Response, stream_with_context, send_file
+from flask import Blueprint, render_template, request, redirect, send_from_directory, url_for, flash, jsonify, session, Response, stream_with_context, send_file
 import json
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg') 
 from werkzeug.utils import secure_filename
 import time  # To simulate long training steps
 from model.model import *
@@ -142,8 +144,8 @@ def get_config():
             return redirect(url_for('routes.index'))
 
         # Train the model using the uploaded file and saved config
-        history, model, stats, img_path = train_model(config_path, file_path)
-
+        history, model, stats = train_model(config_path, file_path)
+        session['history'] = history.history  
         # Save training results
         history_df = pd.DataFrame(history.history)
         history_df.to_csv("training_history.csv", index=False)
@@ -152,10 +154,6 @@ def get_config():
             f.write(f"Accuracy: {stats['accuracy']}\n")
             f.write(stats['classification_report'])
             f.write(f"\nConfusion Matrix:\n{stats['confusion_matrix']}")
-        if img_path is None or not os.path.exists(img_path):
-            flash('Failed to generate loss plot.')
-            return redirect(url_for('routes.index'))
-
         flash('Model trained and loss plot generated successfully!')
         return redirect(url_for('routes.generate_loss_plot_route'))
     except Exception as e:  
@@ -205,6 +203,14 @@ def get_progress():
     return jsonify(progress=progress)
 
 @routes.route('/generate_loss_plot')
-def generate_loss_plot_route(history):
-    img_path = generate_loss_plot(history)
-    return send_file(img_path, mimetype='image/png')
+def generate_loss_plot_route():
+    # Get the history from the session
+    history_data = session.get('history', None)
+    
+    if history_data is None:
+        flash('No training history found. Please train the model first.')
+        return redirect(url_for('routes.index'))
+
+    img_path = generate_loss_plot(history_data)
+    return redirect(url_for('routes.index', img_path=img_path))
+
