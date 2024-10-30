@@ -152,13 +152,15 @@ def get_config():
             f.write(f"Accuracy: {stats['accuracy']}\n")
             f.write(stats['classification_report'])
             f.write(f"\nConfusion Matrix:\n{stats['confusion_matrix']}")
+        if img_path is None or not os.path.exists(img_path):
+            flash('Failed to generate loss plot.')
+            return redirect(url_for('routes.index'))
 
-        flash('Model trained and saved successfully!')
-    except Exception as e:
+        flash('Model trained and loss plot generated successfully!')
+        return redirect(url_for('routes.generate_loss_plot_route'))
+    except Exception as e:  
         flash(f'Error during model training: {str(e)}')
         return redirect(url_for('routes.index'))
-
-    return redirect(url_for('routes.generate_loss_plot_route'))
 
 @routes.route('/train', methods=['GET'])
 def start_training():

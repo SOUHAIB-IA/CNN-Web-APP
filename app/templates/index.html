@@ -244,65 +244,7 @@
         form.submit();  // Submit the form to configure and start training
     });
 
-    async function fetchLossData() {
-            const response = await fetch('/get_loss_data');
-            const data = await response.json();
-            return data;
-        }
-
         // Fonction pour créer le graphique de perte
-        let chartInstance = null; // Initialisation de chartInstance
-
-async function createLossChart() {
-    const lossData = await fetchLossData();
-    console.log(lossData); // Vérification des données reçues
-
-    const ctx = document.getElementById('lossChart').getContext('2d');
-
-    // Vérifiez si chartInstance existe déjà
-    if (chartInstance) {
-        chartInstance.destroy(); 
-        chartInstance = null; // Détruire l’instance existante avant de créer un nouveau graphique
-    }
-
-    // Créez une nouvelle instance de Chart
-    chartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: Array.from({ length: lossData.loss.length }, (_, i) => i + 1),
-            datasets: [
-                {
-                    label: 'Training Loss',
-                    data: lossData.loss,
-                    borderColor: 'rgba(75, 192, 192, 1)',
-                    fill: false,
-                },
-                {
-                    label: 'Validation Loss',
-                    data: lossData.val_loss,
-                    borderColor: 'rgba(255, 99, 132, 1)',
-                    fill: false,
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                x: {
-                    title: { display: true, text: 'Epoch' }
-                },
-                y: {
-                    title: { display: true, text: 'Loss' }
-                }
-            }
-        }
-    });
-}
-
-// Appel de la fonction une seule fois après chargement du DOM
-document.addEventListener("DOMContentLoaded", () => {
-    createLossChart();
-});
 
 </script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

@@ -172,6 +172,7 @@ def generate_loss_plot(history_data):
     
     # Sauvegardez l'image dans un fichier
     img_path = os.path.join('static', 'loss_plot.png')
+    print(img_path)
     plt.savefig(img_path)
     plt.close()
     
