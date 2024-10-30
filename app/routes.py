@@ -1,10 +1,10 @@
 import os
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session, Response, stream_with_context
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session, Response, stream_with_context, send_file
 import json
 import pandas as pd
 from werkzeug.utils import secure_filename
 import time  # To simulate long training steps
-from model.model import process_data, train_model
+from model.model import *
 
 # Initialize Blueprint for routing
 routes = Blueprint('routes', __name__)
@@ -35,11 +35,9 @@ def save_config(config, config_path='config/config.json'):
 @routes.route('/')
 def index():
     data_preview = None  #Initialize data preview to None
-    df = pd.read_csv('training_history.csv')
-    loss_values = df['loss'].tolist()  # Extract loss values from the CSV
-    epochs = list(range(1, len(loss_values) + 1))  # Generate epoch numbers
+     # Generate epoch numbers
 
-    return render_template('index.html', data_preview=data_preview, loss_values=loss_values, epochs=epochs)
+    return render_template('index.html', data_preview=data_preview)
  
 
 # Route to handle file uploads
@@ -101,8 +99,9 @@ def get_config():
         epochs = request.form.get('epochs', type=int)
         dropout_rate = request.form.get('dropout_rate', type=float)
         train_size = request.form.get('train_test_split', type=int)
-        features = request.form.get('features').split(',')
+        features = request.form.getlist('features')
         target_feature = request.form.get('target_column')
+        categorical_columns = request.form.getlist('categorical_columns')
 
         # Collect layer configurations
         layers_config = [
@@ -125,6 +124,7 @@ def get_config():
             'target_column': target_feature,
             'columns': features,
             'train_size': train_size,
+            'categorical_columns':categorical_columns
         }
 
         # Save the configuration to JSON
@@ -142,13 +142,12 @@ def get_config():
             return redirect(url_for('routes.index'))
 
         # Train the model using the uploaded file and saved config
-        history, model, stats = train_model(config_path, file_path)
+        history, model, stats, img_path = train_model(config_path, file_path)
 
         # Save training results
         history_df = pd.DataFrame(history.history)
         history_df.to_csv("training_history.csv", index=False)
-        model.save('model.h5')
-
+        model.save('model.keras')   
         with open('stats.txt', 'w') as f:
             f.write(f"Accuracy: {stats['accuracy']}\n")
             f.write(stats['classification_report'])
@@ -159,7 +158,7 @@ def get_config():
         flash(f'Error during model training: {str(e)}')
         return redirect(url_for('routes.index'))
 
-    return redirect(url_for('routes.index'))
+    return redirect(url_for('routes.generate_loss_plot_route'))
 
 @routes.route('/train', methods=['GET'])
 def start_training():
@@ -202,3 +201,8 @@ def start_training():
 @routes.route('/progress')
 def get_progress():
     return jsonify(progress=progress)
+
+@routes.route('/generate_loss_plot')
+def generate_loss_plot_route(history):
+    img_path = generate_loss_plot(history)
+    return send_file(img_path, mimetype='image/png')
