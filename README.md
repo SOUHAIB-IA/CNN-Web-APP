@@ -96,7 +96,8 @@ project-root/
 ---
 
 ## Screenshots  
-*(Add screenshots or GIFs demonstrating the UI and training process.)*
+![image](https://github.com/user-attachments/assets/64307d50-7d1e-43a8-8521-e6c1b7c815d0)
+
 
 ---
 
