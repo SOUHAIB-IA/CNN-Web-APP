@@ -156,39 +156,79 @@
     <div class="mt-10 bg-white p-6 rounded-lg shadow-md">
         <h2 class="text-2xl font-semibold mb-4">Historique de la Perte</h2>
         {% if request.args.get('img_path') %}
-            <img src="{{ url_for('static', filename=request.args.get('img_path')) }}" alt="Loss Plot">
+        <img src="{{ url_for('static', filename=request.args.get('img_path')) }}" alt="Loss Plot">
         {% endif %}
     </div>
+    <div class="mt-10 bg-white p-6 rounded-lg shadow-md">
+        <!-- Feature Selection -->
+        <div class="mb-4">
+            <label class="block text-gray-700">Select the Features you trained the model with :</label>
+            {% for column in data_preview.columns %}
+            <div class="mb-2">
+                <input type="checkbox" name="features" value="{{ column }}" id="feature_{{ column }}">
+                <label for="feature_{{ column }}" class="text-gray-600">{{ column }}</label>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="mb-2">
+            <label class="block text-gray-700">Categorical Columns:</label>
+            {% for column in data_preview.columns %}
+            <div>
+                <input type="checkbox" name="categorical_columns" value="{{ column }}" id="cat_{{ column }}">
+                <label for="cat_{{ column }}">{{ column }}</label>
+            </div>
+            {% endfor %}
+        </div>
+
+        <h2 class="text-2xl font-semibold mb-4">Make a Prediction</h2>
+        <form id="predictionForm" action="/predict" method="POST">
+            <div id="predictionInputs"></div> <!-- Dynamic input fields for features -->
+
+            <button type="submit" class="w-full bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 mt-4">
+                Predict
+            </button>
+        </form>
+
+        <div id="predictionResult" class="mt-4 text-gray-600">
+            {% if request.args.get('prediction') %}
+                Prediction Result: {{ request.args.get('prediction') }}
+            {% else %}
+                No prediction made yet.
+            {% endif %}
+        </div>
+        
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-<!-- JavaScript to dynamically generate the layer configurations -->
-<script>
-    function generateLayerConfig() {
-        const numLayers = document.getElementById('numLayers').value;
-        const layerConfigSection = document.getElementById('layerConfigSection');
-        layerConfigSection.innerHTML = ''; // Clear any previous layer configurations
 
-        for (let i = 1; i <= numLayers; i++) {
-            const layerDiv = document.createElement('div');
-            layerDiv.className = "border-t border-gray-200 mt-4 pt-4";
+    <!-- JavaScript to dynamically generate the layer configurations -->
+    <script>
+        function generateLayerConfig() {
+            const numLayers = document.getElementById('numLayers').value;
+            const layerConfigSection = document.getElementById('layerConfigSection');
+            layerConfigSection.innerHTML = ''; // Clear any previous layer configurations
 
-            const layerHeading = document.createElement('h3');
-            layerHeading.className = "text-xl font-semibold mb-4";
-            layerHeading.innerText = `Layer ${i}`;
-            layerDiv.appendChild(layerHeading);
+            for (let i = 1; i <= numLayers; i++) {
+                const layerDiv = document.createElement('div');
+                layerDiv.className = "border-t border-gray-200 mt-4 pt-4";
 
-            const nbrlayers = document.createElement('div');
-            nbrlayers.className = "mb-4";
-            nbrlayers.innerHTML = `
+                const layerHeading = document.createElement('h3');
+                layerHeading.className = "text-xl font-semibold mb-4";
+                layerHeading.innerText = `Layer ${i}`;
+                layerDiv.appendChild(layerHeading);
+
+                const nbrlayers = document.createElement('div');
+                nbrlayers.className = "mb-4";
+                nbrlayers.innerHTML = `
                 <label class="block text-gray-700">Number of Neurons (Layer ${i}):</label>
                 <input type="number" name="neurons_layer_${i}" min="1" class="w-full border rounded p-2"
                     placeholder="Enter number of neurons for Layer ${i}" required />
             `;
-            layerDiv.appendChild(nbrlayers);
+                layerDiv.appendChild(nbrlayers);
 
-            const activationDiv = document.createElement('div');
-            activationDiv.className = 'mb-4';
-            activationDiv.innerHTML = `
+                const activationDiv = document.createElement('div');
+                activationDiv.className = 'mb-4';
+                activationDiv.innerHTML = `
                 <label class="block text-gray-700">Activation Function (Layer ${i}):</label>
                 <select name="activation_layer_${i}" class="w-full border rounded p-2">
                     <option value="relu">ReLU</option>
@@ -197,58 +237,103 @@
                     <option value="softmax">Softmax</option>
                 </select>
             `;
-            layerDiv.appendChild(activationDiv);
+                layerDiv.appendChild(activationDiv);
 
-            layerConfigSection.appendChild(layerDiv);
-        }
-    }
-
-    function startTraining() {
-        const statusMessage = document.getElementById('statusMessage');
-        const progressBar = document.getElementById('progressBar');
-
-        // Use EventSource to receive real-time progress updates
-        const eventSource = new EventSource('/train');
-
-        eventSource.onmessage = function (event) {
-            if (event.data === 'done') {
-                statusMessage.textContent = 'Training Completed!';
-                progressBar.style.width = '100%';
-                eventSource.close();  // Stop receiving updates
-            } else if (event.data.startsWith('error')) {
-                statusMessage.textContent = 'Error: ' + event.data.split(':')[1];
-                eventSource.close();  // Stop receiving updates
-            } else if (event.data === 'heartbeat') {
-                console.log('Heartbeat received');  // Keep-alive signal
-            } else {
-                const progress = parseInt(event.data);
-                progressBar.style.width = progress + '%';
-                statusMessage.textContent = `Training in progress... ${progress}%`;
+                layerConfigSection.appendChild(layerDiv);
             }
-        };
+        }
 
-        eventSource.onerror = function () {
-            statusMessage.textContent = 'Connection lost. Attempting to reconnect...';
-            eventSource.close();  // Stop the current connection
+        function startTraining() {
+            const statusMessage = document.getElementById('statusMessage');
+            const progressBar = document.getElementById('progressBar');
 
-            // Attempt to reconnect after 5 seconds
-            setTimeout(() => {
-                startTraining();
-            }, 5000);
-        };
-    }
+            // Use EventSource to receive real-time progress updates
+            const eventSource = new EventSource('/train');
 
-    // Call the function when the form is submitted
-    const form = document.querySelector('form[action="/get_config"]');
-    form.addEventListener('submit', function (event) {
-        event.preventDefault();  // Prevent default form submission
-        startTraining();  // Start training with progress updates
-        form.submit();  // Submit the form to configure and start training
-    });
+            eventSource.onmessage = function (event) {
+                if (event.data === 'done') {
+                    statusMessage.textContent = 'Training Completed!';
+                    progressBar.style.width = '100%';
+                    eventSource.close();  // Stop receiving updates
+                } else if (event.data.startsWith('error')) {
+                    statusMessage.textContent = 'Error: ' + event.data.split(':')[1];
+                    eventSource.close();  // Stop receiving updates
+                } else if (event.data === 'heartbeat') {
+                    console.log('Heartbeat received');  // Keep-alive signal
+                } else {
+                    const progress = parseInt(event.data);
+                    progressBar.style.width = progress + '%';
+                    statusMessage.textContent = `Training in progress... ${progress}%`;
+                }
+            };
 
-        // Fonction pour créer le graphique de perte
+            eventSource.onerror = function () {
+                statusMessage.textContent = 'Connection lost. Attempting to reconnect...';
+                eventSource.close();  // Stop the current connection
 
-</script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+                // Attempt to reconnect after 5 seconds
+                setTimeout(() => {
+                    startTraining();
+                }, 5000);
+            };
+        }
 
-{% endblock %}
+        // Call the function when the form is submitted
+        const form = document.querySelector('form[action="/get_config"]');
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();  // Prevent default form submission
+            startTraining();  // Start training with progress updates
+            form.submit();  // Submit the form to configure and start training
+        });
+        // Function to generate input fields for features based on checked checkboxes
+        function generateFeatureInputs() {
+            const featureCheckboxes = document.querySelectorAll('input[name="features"]');
+            const catfeatureCheckboxes = document.querySelectorAll('input[name="categorical_columns"]');
+            const predictionInputsDiv = document.getElementById('predictionInputs');
+
+            featureCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', () => {
+                    predictionInputsDiv.innerHTML = ''; // Clear previous inputs
+                    featureCheckboxes.forEach(chk => {
+                        if (chk.checked) {
+                            const inputDiv = document.createElement('div');
+                            inputDiv.className = "mt-2";
+
+                            const label = document.createElement('label');
+                            label.className = "block text-gray-700";
+                            label.innerText = `${chk.value}:`;
+                            inputDiv.appendChild(label);
+
+                            const input = document.createElement('input');
+                            input.type = "text"; // Change this to "number" or appropriate type as needed
+                            input.name = `feature_${chk.value}`;
+                            input.className = "w-full border rounded p-2";
+                            input.required = true;
+
+                            // Load value from localStorage if available
+                            input.value = localStorage.getItem(input.name) || '';
+
+                            // Store input value on change
+                            input.addEventListener('input', () => {
+                                localStorage.setItem(input.name, input.value);
+                            });
+
+                            inputDiv.appendChild(input);
+                            predictionInputsDiv.appendChild(inputDiv);
+                        }
+                    });
+                });
+            });
+
+        }
+
+
+
+
+        // Call the load function on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            generateFeatureInputs();
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    {% endblock %}

@@ -115,9 +115,50 @@ def train_model(config_path, file_path):
     return history, model, stats
 
 # Predict with the trained model
-def predict(model, x_pred):
-    x_pred = x_pred.reshape((-1, model.input_shape[1]))
-    return model.predict(x_pred)
+from tensorflow.keras.models import load_model
+
+def load_config(config_path):
+    """Load the model configuration from a JSON file."""
+    import json
+    with open(config_path, 'r') as file:
+        return json.load(file)
+
+def model_predict(input_features, config_path='config/config.json', model_path='model.h5'):
+    # Load the model configuration
+    config = load_config(config_path)
+    if config is None:
+        raise ValueError("Configuration file not found or invalid")
+
+    # Load the trained model
+    try:
+        model = load_model(model_path)
+    except Exception as e:
+        print(f"Error loading model: {e}")
+        return None
+
+    # Create input DataFrame for preprocessing
+    # Combine numerical and categorical features
+    columns = config['columns'] + config['categorical_columns']  # Combine both lists
+    input_data = pd.DataFrame([input_features], columns=columns)
+
+    # One-hot encode categorical features if any
+    if 'categorical_columns' in config and config['categorical_columns']:
+        encoder = OneHotEncoder(sparse_output=False, drop='first', handle_unknown='ignore')
+        encoded_features = encoder.fit_transform(input_data[config['categorical_columns']])
+        encoded_feature_names = encoder.get_feature_names_out(config['categorical_columns'])
+        encoded_df = pd.DataFrame(encoded_features, columns=encoded_feature_names, index=input_data.index)
+        input_data = pd.concat([input_data.drop(columns=config['categorical_columns']), encoded_df], axis=1)
+
+    # Scale input features
+    scaler = StandardScaler()
+    # Assuming scaler has been fitted before (in training phase)
+    scaled_features = scaler.fit_transform(input_data)
+
+    # Make predictions using the trained model
+    prediction = model.predict(scaled_features).flatten()
+    return float(prediction[0])  # Convert to float before returning
+
+
 def generate_loss_plot(history_data):
 
     if history_data is None or 'loss' not in history_data or 'val_loss' not in history_data:

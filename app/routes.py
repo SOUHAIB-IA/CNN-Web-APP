@@ -1,12 +1,19 @@
 import os
-from flask import Blueprint, render_template, request, redirect, send_from_directory, url_for, flash, jsonify, session, Response, stream_with_context, send_file
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session, Response, stream_with_context
 import json
 import pandas as pd
+import numpy as np
 import matplotlib
-matplotlib.use('Agg') 
+matplotlib.use('Agg')
 from werkzeug.utils import secure_filename
 import time  # To simulate long training steps
 from model.model import *
+from tensorflow.keras.models import load_model
+
+# Define the load_model function if it isn't already defined
+def load_model_from_file(model_path):
+    model = load_model(model_path)
+    return model
 
 # Initialize Blueprint for routing
 routes = Blueprint('routes', __name__)
@@ -33,14 +40,12 @@ def save_config(config, config_path='config/config.json'):
     with open(config_path, 'w') as f:
         json.dump(config, f)
 
-# Route to homepage
 @routes.route('/')
 def index():
-    data_preview = None  #Initialize data preview to None
-     # Generate epoch numbers
-
+    # Retrieve uploaded data preview from session
+    uploaded_data_preview = session.get('uploaded_data_preview', None)
+    data_preview = pd.read_json(uploaded_data_preview) if uploaded_data_preview else None
     return render_template('index.html', data_preview=data_preview)
- 
 
 # Route to handle file uploads
 @routes.route('/upload', methods=['POST'])
@@ -71,13 +76,14 @@ def upload_file():
             data = process_data(file_path)
             data_preview = data.head(10)
             session['uploaded_filename'] = filename  # Store filename in session
+            session['uploaded_data_preview'] = data_preview.to_json()  # Store the preview data as JSON
             session.modified = True
         except Exception as e:
             flash(f'Error processing file: {str(e)}')
             return redirect(request.url)
 
         flash(f'File {filename} uploaded successfully')
-        return render_template('index.html', data_preview=data_preview)
+        return redirect(url_for('routes.index'))
 
     flash('Invalid file type. Only CSV, XLS, or XLSX files are allowed.')
     return redirect(request.url)
@@ -126,7 +132,7 @@ def get_config():
             'target_column': target_feature,
             'columns': features,
             'train_size': train_size,
-            'categorical_columns':categorical_columns
+            'categorical_columns': categorical_columns
         }
 
         # Save the configuration to JSON
@@ -149,14 +155,14 @@ def get_config():
         # Save training results
         history_df = pd.DataFrame(history.history)
         history_df.to_csv("training_history.csv", index=False)
-        model.save('model.keras')   
+        model.save('model.keras')
         with open('stats.txt', 'w') as f:
             f.write(f"Accuracy: {stats['accuracy']}\n")
             f.write(stats['classification_report'])
             f.write(f"\nConfusion Matrix:\n{stats['confusion_matrix']}")
         flash('Model trained and loss plot generated successfully!')
         return redirect(url_for('routes.generate_loss_plot_route'))
-    except Exception as e:  
+    except Exception as e:
         flash(f'Error during model training: {str(e)}')
         return redirect(url_for('routes.index'))
 
@@ -214,3 +220,39 @@ def generate_loss_plot_route():
     img_path = generate_loss_plot(history_data)
     return redirect(url_for('routes.index', img_path=img_path))
 
+@routes.route('/predict', methods=['POST'])
+def predict():
+    try:
+        # Load configuration to ensure column names are correct
+        config = load_config('config/config.json')
+        if config is None:
+            raise ValueError("Model configuration could not be loaded")
+        
+        # Retrieve feature inputs from the request form
+        feature_values = []
+        all_features = config['columns'] + config.get('categorical_columns', [])
+        
+        # Collect each feature value as a raw input
+        for column in all_features:
+            value = request.form.get(f'feature_{column}')
+            if value is None:
+                raise ValueError(f"Missing input for feature: {column}")
+            
+            # Convert to float if numerical; otherwise, pass as string for categorical features
+            try:
+                if column in config['columns']:
+                    value = float(value)
+                feature_values.append(value)
+            except ValueError:
+                raise ValueError(f"Invalid input for feature '{column}': {value}")
+
+        print("Feature values:", feature_values)  # Debug log for input values
+
+        # Pass the raw feature values to model_predict
+        prediction = model_predict(feature_values, config_path='config/config.json', model_path='model.h5')
+        
+        return redirect(url_for('routes.index', prediction=prediction))
+
+
+    except Exception as e:
+        return jsonify(error=str(e)), 500
